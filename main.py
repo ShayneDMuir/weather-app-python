@@ -3,23 +3,101 @@ import os
 import requests
 import geocoder
 import winreg
+import subprocess
+import tempfile
 from geopy.geocoders import Nominatim
 from PyQt6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QLabel,
                               QHBoxLayout, QFrame, QGraphicsDropShadowEffect,
                               QLineEdit, QCompleter, QListView, QScrollArea,
-                              QSystemTrayIcon, QMenu)
+                              QSystemTrayIcon, QMenu, QMessageBox)
 from PyQt6.QtCore import Qt, QSize, QTimer, QStringListModel, QThread, pyqtSignal
 from PyQt6.QtGui import QColor, QIcon, QAction, QPixmap, QPainter, QFont
 from PyQt6.QtSvgWidgets import QSvgWidget
 
-# App info for startup registry
+# App info
 APP_NAME = "WeatherApp"
+APP_VERSION = "1.0.0"
+GITHUB_REPO = "ShayneDMuir/weather-app-python"
 
 """
 Weather App - Main Entry Point
 """
 
 ICON_DIR = os.path.join(os.path.dirname(__file__), "animated")
+
+
+def check_for_updates():
+    """Check GitHub releases for a newer version."""
+    try:
+        url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
+        response = requests.get(url, timeout=5)
+        if response.status_code == 200:
+            data = response.json()
+            latest_version = data.get("tag_name", "").lstrip("v")
+            download_url = None
+            for asset in data.get("assets", []):
+                if asset["name"].endswith(".exe"):
+                    download_url = asset["browser_download_url"]
+                    break
+            return latest_version, download_url
+    except Exception:
+        pass
+    return None, None
+
+
+def compare_versions(current, latest):
+    """Return True if latest is newer than current."""
+    try:
+        current_parts = [int(x) for x in current.split(".")]
+        latest_parts = [int(x) for x in latest.split(".")]
+        return latest_parts > current_parts
+    except Exception:
+        return False
+
+
+def download_update(download_url, progress_callback=None):
+    """Download the update to a temp file."""
+    try:
+        response = requests.get(download_url, stream=True, timeout=60)
+        if response.status_code == 200:
+            temp_dir = tempfile.gettempdir()
+            temp_path = os.path.join(temp_dir, "WeatherApp_update.exe")
+            total_size = int(response.headers.get('content-length', 0))
+            downloaded = 0
+            with open(temp_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+                    downloaded += len(chunk)
+                    if progress_callback and total_size:
+                        progress_callback(int(downloaded * 100 / total_size))
+            return temp_path
+    except Exception:
+        pass
+    return None
+
+
+def apply_update(new_exe_path):
+    """Create a batch script to replace the exe after app closes."""
+    if not getattr(sys, 'frozen', False):
+        return False  # Only works for frozen exe
+
+    current_exe = sys.executable
+    batch_path = os.path.join(tempfile.gettempdir(), "weather_update.bat")
+
+    batch_content = f'''@echo off
+timeout /t 2 /nobreak >nul
+del "{current_exe}"
+move "{new_exe_path}" "{current_exe}"
+start "" "{current_exe}"
+del "%~f0"
+'''
+
+    with open(batch_path, 'w') as f:
+        f.write(batch_content)
+
+    subprocess.Popen(['cmd', '/c', batch_path],
+                     creationflags=subprocess.CREATE_NO_WINDOW)
+    return True
 
 
 def get_weather_icon(code, is_day=True):
@@ -479,6 +557,35 @@ class SuggestionWorker(QThread):
         self.finished.emit(suggestions)
 
 
+class UpdateWorker(QThread):
+    """Worker thread for checking and downloading updates."""
+    update_available = pyqtSignal(str, str)  # version, download_url
+    download_complete = pyqtSignal(str)  # temp_path
+    download_progress = pyqtSignal(int)  # percentage
+    no_update = pyqtSignal()
+    error = pyqtSignal(str)
+
+    def __init__(self, download_url=None):
+        super().__init__()
+        self.download_url = download_url
+
+    def run(self):
+        if self.download_url:
+            # Download mode
+            temp_path = download_update(self.download_url, self.download_progress.emit)
+            if temp_path:
+                self.download_complete.emit(temp_path)
+            else:
+                self.error.emit("Download failed")
+        else:
+            # Check mode
+            latest_version, download_url = check_for_updates()
+            if latest_version and compare_versions(APP_VERSION, latest_version):
+                self.update_available.emit(latest_version, download_url)
+            else:
+                self.no_update.emit()
+
+
 def create_clothing_card(weather_data):
     """Create the clothing suggestions card widget."""
     suggestions = get_clothing_suggestions(weather_data)
@@ -616,6 +723,11 @@ class WeatherApp(QWidget):
         self.startup_action.triggered.connect(self.toggle_startup)
         tray_menu.addAction(self.startup_action)
 
+        # Check for updates
+        self.update_action = QAction("Check for updates", self)
+        self.update_action.triggered.connect(self.check_for_updates)
+        tray_menu.addAction(self.update_action)
+
         tray_menu.addSeparator()
 
         quit_action = QAction("Quit", self)
@@ -627,6 +739,9 @@ class WeatherApp(QWidget):
 
         # Set initial icon (will be updated with temperature)
         self.update_tray_icon(None)
+
+        # Check for updates on startup (after a short delay)
+        QTimer.singleShot(3000, self.silent_update_check)
 
     def get_exe_path(self):
         """Get the path to the executable."""
@@ -689,6 +804,105 @@ class WeatherApp(QWidget):
 
         painter.end()
         self.tray_icon.setIcon(QIcon(pixmap))
+
+    def silent_update_check(self):
+        """Check for updates silently on startup."""
+        self.update_worker = UpdateWorker()
+        self.update_worker.update_available.connect(self.on_update_available_silent)
+        self.update_worker.start()
+
+    def check_for_updates(self):
+        """Manual check for updates from menu."""
+        self.update_action.setEnabled(False)
+        self.update_action.setText("Checking...")
+        self.update_worker = UpdateWorker()
+        self.update_worker.update_available.connect(self.on_update_available)
+        self.update_worker.no_update.connect(self.on_no_update)
+        self.update_worker.start()
+
+    def on_update_available_silent(self, version, download_url):
+        """Handle update available (silent check)."""
+        self.tray_icon.showMessage(
+            "Update Available",
+            f"Version {version} is available. Right-click tray icon to update.",
+            QSystemTrayIcon.MessageIcon.Information,
+            5000
+        )
+        self.pending_update_url = download_url
+        self.pending_update_version = version
+        self.update_action.setText(f"Update to v{version}")
+
+    def on_update_available(self, version, download_url):
+        """Handle update available (manual check)."""
+        self.update_action.setEnabled(True)
+        reply = QMessageBox.question(
+            self,
+            "Update Available",
+            f"Version {version} is available (current: {APP_VERSION}).\n\nDownload and install now?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
+        )
+        if reply == QMessageBox.StandardButton.Yes:
+            self.download_update(download_url)
+        else:
+            self.pending_update_url = download_url
+            self.pending_update_version = version
+            self.update_action.setText(f"Update to v{version}")
+
+    def on_no_update(self):
+        """Handle no update available."""
+        self.update_action.setEnabled(True)
+        self.update_action.setText("Check for updates")
+        self.tray_icon.showMessage(
+            "No Updates",
+            f"You're running the latest version ({APP_VERSION}).",
+            QSystemTrayIcon.MessageIcon.Information,
+            3000
+        )
+
+    def download_update(self, download_url):
+        """Download and install the update."""
+        self.update_action.setEnabled(False)
+        self.update_action.setText("Downloading...")
+        self.download_worker = UpdateWorker(download_url)
+        self.download_worker.download_progress.connect(self.on_download_progress)
+        self.download_worker.download_complete.connect(self.on_download_complete)
+        self.download_worker.error.connect(self.on_download_error)
+        self.download_worker.start()
+
+    def on_download_progress(self, percent):
+        """Update download progress."""
+        self.update_action.setText(f"Downloading... {percent}%")
+
+    def on_download_complete(self, temp_path):
+        """Handle download complete."""
+        self.update_action.setText("Installing...")
+        if apply_update(temp_path):
+            self.tray_icon.showMessage(
+                "Update Installing",
+                "The app will restart shortly.",
+                QSystemTrayIcon.MessageIcon.Information,
+                2000
+            )
+            QTimer.singleShot(1000, QApplication.instance().quit)
+        else:
+            self.update_action.setEnabled(True)
+            self.update_action.setText("Check for updates")
+            QMessageBox.warning(
+                self,
+                "Update Failed",
+                "Could not apply update. Please download manually from GitHub."
+            )
+
+    def on_download_error(self, error):
+        """Handle download error."""
+        self.update_action.setEnabled(True)
+        self.update_action.setText("Check for updates")
+        self.tray_icon.showMessage(
+            "Update Failed",
+            error,
+            QSystemTrayIcon.MessageIcon.Warning,
+            3000
+        )
 
     def show_window(self):
         """Show and activate the window."""
