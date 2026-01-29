@@ -33,3 +33,11 @@ htmlcov/
 *.log
 .DS_Store
 Thumbs.db
+
+# PyInstaller
+*.spec
+upx/
+upx.zip
+
+# Claude Code
+.claude/
