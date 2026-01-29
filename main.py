@@ -5,9 +5,10 @@ import geocoder
 from geopy.geocoders import Nominatim
 from PyQt6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QLabel,
                               QHBoxLayout, QFrame, QGraphicsDropShadowEffect,
-                              QLineEdit, QCompleter, QListView)
-from PyQt6.QtCore import Qt, QSize, QTimer, QStringListModel
-from PyQt6.QtGui import QColor, QIcon
+                              QLineEdit, QCompleter, QListView, QScrollArea,
+                              QSystemTrayIcon, QMenu)
+from PyQt6.QtCore import Qt, QSize, QTimer, QStringListModel, QThread, pyqtSignal
+from PyQt6.QtGui import QColor, QIcon, QAction
 from PyQt6.QtSvgWidgets import QSvgWidget
 
 """
@@ -162,7 +163,8 @@ def fetch_weather_data(lat, lon):
         "longitude": lon,
         "current_weather": True,
         "daily": "temperature_2m_max,temperature_2m_min,rain_sum,precipitation_probability_max,sunrise,sunset,weathercode,uv_index_max",
-        "hourly": "relative_humidity_2m,wind_speed_10m"
+        "hourly": "relative_humidity_2m,wind_speed_10m",
+        "timezone": "auto"
     }
     response = requests.get(url, params=params)
     return response.json()
@@ -240,21 +242,39 @@ def get_stylesheet():
         QListView {
             font-family: 'Roboto', 'Segoe UI', sans-serif;
             font-size: 14px;
-            background-color: #ffffff;
-            border: none;
-            border-radius: 16px;
-            padding: 8px 0;
+            background-color: #f3edf7;
+            border: 1px solid #cac4d0;
+            border-radius: 4px;
+            padding: 4px 0;
             outline: none;
+            margin-top: 4px;
         }
         QListView::item {
-            padding: 12px 16px;
+            padding: 14px 16px;
             color: #1d1b20;
+            border: none;
+            min-height: 24px;
         }
         QListView::item:hover {
-            background-color: #e8def8;
+            background-color: #e7e0ec;
         }
         QListView::item:selected {
-            background-color: #e8def8;
+            background-color: #d0bcff;
+            color: #21005d;
+        }
+        QFrame#forecastCard {
+            background-color: #ffffff;
+            border-radius: 28px;
+        }
+        QLabel#forecastDay {
+            font-size: 12px;
+            font-weight: 500;
+            color: #49454f;
+        }
+        QLabel#forecastTemp {
+            font-size: 14px;
+            font-weight: 500;
+            color: #1d1b20;
         }
     """
 
@@ -319,7 +339,15 @@ def get_clothing_suggestions(weather_data):
     wind_speed = hourly["wind_speed_10m"][0]
     precipitation_chance = daily["precipitation_probability_max"][0]
     uv_index = daily["uv_index_max"][0]
-    is_day = weather.get("is_day", 1) == 1
+
+    # Calculate is_day from sunrise/sunset times (more accurate than API flag)
+    current_time = weather.get("time", "")
+    sunrise = daily["sunrise"][0] if daily.get("sunrise") else ""
+    sunset = daily["sunset"][0] if daily.get("sunset") else ""
+
+    is_day = False
+    if current_time and sunrise and sunset:
+        is_day = sunrise <= current_time <= sunset
 
     suggestions = []
 
@@ -367,6 +395,86 @@ def get_clothing_suggestions(weather_data):
     return suggestions
 
 
+def create_forecast_card(weather_data):
+    """Create the 7-day forecast card widget."""
+    daily = weather_data["daily"]
+
+    card = QFrame()
+    card.setObjectName("forecastCard")
+
+    card_shadow = QGraphicsDropShadowEffect()
+    card_shadow.setBlurRadius(20)
+    card_shadow.setOffset(0, 4)
+    card_shadow.setColor(QColor(0, 0, 0, 25))
+    card.setGraphicsEffect(card_shadow)
+
+    card_layout = QVBoxLayout(card)
+    card_layout.setContentsMargins(16, 16, 16, 16)
+    card_layout.setSpacing(12)
+
+    # Card title
+    card_title = QLabel("7-Day Forecast")
+    card_title.setObjectName("cardTitle")
+    card_layout.addWidget(card_title)
+
+    # Horizontal row of days
+    days_layout = QHBoxLayout()
+    days_layout.setSpacing(4)
+
+    day_names = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+    for i in range(min(7, len(daily.get("time", [])))):
+        day_widget = QWidget()
+        day_layout = QVBoxLayout(day_widget)
+        day_layout.setContentsMargins(4, 4, 4, 4)
+        day_layout.setSpacing(4)
+        day_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        # Get day name from date
+        date_str = daily["time"][i]
+        from datetime import datetime
+        date_obj = datetime.strptime(date_str, "%Y-%m-%d")
+        day_name = day_names[date_obj.weekday()]
+
+        # Day label
+        day_label = QLabel(day_name)
+        day_label.setObjectName("forecastDay")
+        day_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        day_layout.addWidget(day_label)
+
+        # Weather icon (smaller)
+        weathercode = daily["weathercode"][i]
+        icon_path = get_weather_icon(weathercode, is_day=True)
+        icon = QSvgWidget(icon_path)
+        icon.setFixedSize(32, 32)
+        day_layout.addWidget(icon, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        # High temp
+        high_temp = int(daily["temperature_2m_max"][i])
+        temp_label = QLabel(f"{high_temp}°")
+        temp_label.setObjectName("forecastTemp")
+        temp_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        day_layout.addWidget(temp_label)
+
+        days_layout.addWidget(day_widget)
+
+    card_layout.addLayout(days_layout)
+    return card
+
+
+class SuggestionWorker(QThread):
+    """Worker thread for fetching location suggestions."""
+    finished = pyqtSignal(list)
+
+    def __init__(self, query):
+        super().__init__()
+        self.query = query
+
+    def run(self):
+        suggestions = fetch_location_suggestions(self.query)
+        self.finished.emit(suggestions)
+
+
 def create_clothing_card(weather_data):
     """Create the clothing suggestions card widget."""
     suggestions = get_clothing_suggestions(weather_data)
@@ -401,15 +509,19 @@ class WeatherApp(QWidget):
         super().__init__()
         self.setObjectName("main")
         self.setWindowTitle("Weather")
-        self.setFixedSize(400, 920)
+        self.setMinimumSize(380, 600)
+        self.resize(420, 900)
         self.setStyleSheet(get_stylesheet())
 
         # Get current location
         self.lat, self.lon, self.location_name = get_current_location()
 
+        # Setup system tray
+        self.setup_tray()
+
         # Main layout
         self.main_layout = QVBoxLayout()
-        self.main_layout.setContentsMargins(24, 24, 24, 24)
+        self.main_layout.setContentsMargins(16, 16, 16, 16)
         self.main_layout.setSpacing(0)
 
         # Search bar (Material Design 3 style)
@@ -418,9 +530,9 @@ class WeatherApp(QWidget):
         search_container.setFixedHeight(56)
 
         search_shadow = QGraphicsDropShadowEffect()
-        search_shadow.setBlurRadius(8)
+        search_shadow.setBlurRadius(12)
         search_shadow.setOffset(0, 2)
-        search_shadow.setColor(QColor(0, 0, 0, 20))
+        search_shadow.setColor(QColor(0, 0, 0, 30))
         search_container.setGraphicsEffect(search_shadow)
 
         search_layout = QHBoxLayout(search_container)
@@ -465,16 +577,72 @@ class WeatherApp(QWidget):
 
         self.main_layout.addSpacing(16)
 
-        # Content container
+        # Scroll area for content
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.scroll_area.setStyleSheet("QScrollArea { background: transparent; } QScrollBar:vertical { width: 8px; background: transparent; } QScrollBar::handle:vertical { background: #cac4d0; border-radius: 4px; } QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }")
+
+        # Content container with margins for shadows
         self.content_widget = QWidget()
+        self.content_widget.setStyleSheet("background: transparent;")
         self.content_layout = QVBoxLayout(self.content_widget)
-        self.content_layout.setContentsMargins(0, 0, 0, 0)
+        self.content_layout.setContentsMargins(8, 8, 8, 8)
         self.content_layout.setSpacing(0)
 
-        self.main_layout.addWidget(self.content_widget)
-        self.main_layout.addStretch()
+        self.scroll_area.setWidget(self.content_widget)
+        self.main_layout.addWidget(self.scroll_area)
 
         self.setLayout(self.main_layout)
+
+    def setup_tray(self):
+        """Setup system tray icon and menu."""
+        self.tray_icon = QSystemTrayIcon(self)
+        self.tray_icon.setToolTip("Weather App")
+
+        # Create tray menu
+        tray_menu = QMenu()
+
+        show_action = QAction("Show", self)
+        show_action.triggered.connect(self.show_window)
+        tray_menu.addAction(show_action)
+
+        quit_action = QAction("Quit", self)
+        quit_action.triggered.connect(QApplication.instance().quit)
+        tray_menu.addAction(quit_action)
+
+        self.tray_icon.setContextMenu(tray_menu)
+        self.tray_icon.activated.connect(self.tray_activated)
+
+        # Use a default icon (or you could use one of your weather icons)
+        icon_path = os.path.join(ICON_DIR, "weather.svg")
+        if os.path.exists(icon_path):
+            self.tray_icon.setIcon(QIcon(icon_path))
+
+    def show_window(self):
+        """Show and activate the window."""
+        self.showNormal()
+        self.activateWindow()
+
+    def tray_activated(self, reason):
+        """Handle tray icon activation."""
+        if reason == QSystemTrayIcon.ActivationReason.DoubleClick:
+            self.show_window()
+
+    def changeEvent(self, event):
+        """Handle window state changes."""
+        if event.type() == event.Type.WindowStateChange:
+            if self.isMinimized():
+                self.hide()
+                self.tray_icon.show()
+                self.tray_icon.showMessage(
+                    "Weather App",
+                    "Running in background. Double-click to restore.",
+                    QSystemTrayIcon.MessageIcon.Information,
+                    2000
+                )
+        super().changeEvent(event)
 
         # Load weather data
         self.update_weather()
@@ -543,6 +711,12 @@ class WeatherApp(QWidget):
         clothing_card = create_clothing_card(weather_data)
         self.content_layout.addWidget(clothing_card)
 
+        self.content_layout.addSpacing(16)
+
+        # 7-day forecast card
+        forecast_card = create_forecast_card(weather_data)
+        self.content_layout.addWidget(forecast_card)
+
     def clear_layout(self, layout):
         """Recursively clear a layout."""
         while layout.count():
@@ -556,15 +730,26 @@ class WeatherApp(QWidget):
         """Handle text changes with debouncing."""
         self.search_timer.stop()
         if len(text) >= 2:
-            self.search_timer.start(300)  # 300ms debounce
+            self.search_timer.start(400)  # 400ms debounce
 
     def fetch_suggestions(self):
-        """Fetch and display location suggestions."""
+        """Fetch and display location suggestions asynchronously."""
         query = self.search_input.text().strip()
         if len(query) < 2:
             return
 
-        suggestions = fetch_location_suggestions(query)
+        # Cancel any existing worker
+        if hasattr(self, 'suggestion_worker') and self.suggestion_worker.isRunning():
+            self.suggestion_worker.terminate()
+            self.suggestion_worker.wait()
+
+        # Start new worker thread
+        self.suggestion_worker = SuggestionWorker(query)
+        self.suggestion_worker.finished.connect(self.on_suggestions_received)
+        self.suggestion_worker.start()
+
+    def on_suggestions_received(self, suggestions):
+        """Handle suggestions received from worker thread."""
         self.location_cache.clear()
 
         display_names = []
