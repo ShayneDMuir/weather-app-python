@@ -596,6 +596,9 @@ class WeatherApp(QWidget):
 
         self.setLayout(self.main_layout)
 
+        # Load weather data
+        self.update_weather()
+
     def setup_tray(self):
         """Setup system tray icon and menu."""
         self.tray_icon = QSystemTrayIcon(self)
@@ -643,9 +646,6 @@ class WeatherApp(QWidget):
                     2000
                 )
         super().changeEvent(event)
-
-        # Load weather data
-        self.update_weather()
 
     def update_weather(self):
         """Fetch and display weather data."""
