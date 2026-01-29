@@ -181,52 +181,52 @@ def get_stylesheet():
             color: #1d1b20;
         }
         QLabel#location {
-            font-size: 22px;
+            font-size: 18px;
             font-weight: 400;
             color: #1d1b20;
         }
         QLabel#condition {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 400;
             color: #49454f;
         }
         QLabel#temperature {
-            font-size: 64px;
+            font-size: 48px;
             font-weight: 300;
             color: #1d1b20;
         }
         QLabel#minmax {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 500;
             color: #49454f;
         }
         QFrame#card {
             background-color: #ffffff;
-            border-radius: 28px;
+            border-radius: 20px;
         }
         QLabel#cardTitle {
-            font-size: 14px;
+            font-size: 12px;
             font-weight: 500;
             color: #49454f;
-            padding-bottom: 8px;
+            padding-bottom: 4px;
         }
         QLabel#detailLabel {
-            font-size: 14px;
+            font-size: 12px;
             font-weight: 400;
             color: #49454f;
         }
         QLabel#detailValue {
-            font-size: 14px;
+            font-size: 12px;
             font-weight: 500;
             color: #1d1b20;
         }
         QFrame#searchBar {
             background-color: #e6e0e9;
-            border-radius: 28px;
+            border-radius: 22px;
         }
         QLineEdit#searchInput {
             font-family: 'Roboto', 'Segoe UI', sans-serif;
-            font-size: 16px;
+            font-size: 14px;
             padding: 0px;
             border: none;
             background-color: transparent;
@@ -264,15 +264,15 @@ def get_stylesheet():
         }
         QFrame#forecastCard {
             background-color: #ffffff;
-            border-radius: 28px;
+            border-radius: 20px;
         }
         QLabel#forecastDay {
-            font-size: 12px;
+            font-size: 10px;
             font-weight: 500;
             color: #49454f;
         }
         QLabel#forecastTemp {
-            font-size: 14px;
+            font-size: 12px;
             font-weight: 500;
             color: #1d1b20;
         }
@@ -288,14 +288,14 @@ def create_details_card(weather_data):
     card.setObjectName("card")
 
     card_shadow = QGraphicsDropShadowEffect()
-    card_shadow.setBlurRadius(20)
-    card_shadow.setOffset(0, 4)
-    card_shadow.setColor(QColor(0, 0, 0, 25))
+    card_shadow.setBlurRadius(16)
+    card_shadow.setOffset(0, 3)
+    card_shadow.setColor(QColor(0, 0, 0, 30))
     card.setGraphicsEffect(card_shadow)
 
     card_layout = QVBoxLayout(card)
-    card_layout.setContentsMargins(24, 16, 24, 16)
-    card_layout.setSpacing(8)
+    card_layout.setContentsMargins(16, 12, 16, 12)
+    card_layout.setSpacing(4)
 
     card_title = QLabel("Weather Details")
     card_title.setObjectName("cardTitle")
@@ -403,14 +403,14 @@ def create_forecast_card(weather_data):
     card.setObjectName("forecastCard")
 
     card_shadow = QGraphicsDropShadowEffect()
-    card_shadow.setBlurRadius(20)
-    card_shadow.setOffset(0, 4)
-    card_shadow.setColor(QColor(0, 0, 0, 25))
+    card_shadow.setBlurRadius(16)
+    card_shadow.setOffset(0, 3)
+    card_shadow.setColor(QColor(0, 0, 0, 30))
     card.setGraphicsEffect(card_shadow)
 
     card_layout = QVBoxLayout(card)
-    card_layout.setContentsMargins(16, 16, 16, 16)
-    card_layout.setSpacing(12)
+    card_layout.setContentsMargins(12, 10, 12, 10)
+    card_layout.setSpacing(6)
 
     # Card title
     card_title = QLabel("7-Day Forecast")
@@ -426,8 +426,8 @@ def create_forecast_card(weather_data):
     for i in range(min(7, len(daily.get("time", [])))):
         day_widget = QWidget()
         day_layout = QVBoxLayout(day_widget)
-        day_layout.setContentsMargins(4, 4, 4, 4)
-        day_layout.setSpacing(4)
+        day_layout.setContentsMargins(2, 2, 2, 2)
+        day_layout.setSpacing(2)
         day_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # Get day name from date
@@ -446,7 +446,7 @@ def create_forecast_card(weather_data):
         weathercode = daily["weathercode"][i]
         icon_path = get_weather_icon(weathercode, is_day=True)
         icon = QSvgWidget(icon_path)
-        icon.setFixedSize(32, 32)
+        icon.setFixedSize(24, 24)
         day_layout.addWidget(icon, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # High temp
@@ -483,14 +483,14 @@ def create_clothing_card(weather_data):
     card.setObjectName("card")
 
     card_shadow = QGraphicsDropShadowEffect()
-    card_shadow.setBlurRadius(20)
-    card_shadow.setOffset(0, 4)
-    card_shadow.setColor(QColor(0, 0, 0, 25))
+    card_shadow.setBlurRadius(16)
+    card_shadow.setOffset(0, 3)
+    card_shadow.setColor(QColor(0, 0, 0, 30))
     card.setGraphicsEffect(card_shadow)
 
     card_layout = QVBoxLayout(card)
-    card_layout.setContentsMargins(24, 16, 24, 16)
-    card_layout.setSpacing(6)
+    card_layout.setContentsMargins(16, 12, 16, 12)
+    card_layout.setSpacing(3)
 
     card_title = QLabel("What to Wear")
     card_title.setObjectName("cardTitle")
@@ -505,12 +505,15 @@ def create_clothing_card(weather_data):
 
 
 class WeatherApp(QWidget):
+    # Mobile phone aspect ratio (9:19.5 like iPhone)
+    ASPECT_RATIO = 9 / 19.5
+
     def __init__(self):
         super().__init__()
         self.setObjectName("main")
         self.setWindowTitle("Weather")
-        self.setMinimumSize(380, 600)
-        self.resize(420, 900)
+        self.resize(390, 844)
+        self.setMinimumSize(292, 633)  # Minimum size maintaining ratio
         self.setStyleSheet(get_stylesheet())
 
         # Get current location
@@ -521,23 +524,23 @@ class WeatherApp(QWidget):
 
         # Main layout
         self.main_layout = QVBoxLayout()
-        self.main_layout.setContentsMargins(16, 16, 16, 16)
+        self.main_layout.setContentsMargins(12, 12, 12, 12)
         self.main_layout.setSpacing(0)
 
         # Search bar (Material Design 3 style)
         search_container = QFrame()
         search_container.setObjectName("searchBar")
-        search_container.setFixedHeight(56)
+        search_container.setFixedHeight(44)
 
         search_shadow = QGraphicsDropShadowEffect()
-        search_shadow.setBlurRadius(12)
+        search_shadow.setBlurRadius(8)
         search_shadow.setOffset(0, 2)
-        search_shadow.setColor(QColor(0, 0, 0, 30))
+        search_shadow.setColor(QColor(0, 0, 0, 25))
         search_container.setGraphicsEffect(search_shadow)
 
         search_layout = QHBoxLayout(search_container)
-        search_layout.setContentsMargins(16, 0, 16, 0)
-        search_layout.setSpacing(12)
+        search_layout.setContentsMargins(12, 0, 12, 0)
+        search_layout.setSpacing(8)
 
         # Search icon (using Unicode)
         search_icon = QLabel("\U0001F50D")
@@ -575,24 +578,13 @@ class WeatherApp(QWidget):
 
         self.main_layout.addWidget(search_container)
 
-        self.main_layout.addSpacing(16)
+        self.main_layout.addSpacing(12)
 
-        # Scroll area for content
-        self.scroll_area = QScrollArea()
-        self.scroll_area.setWidgetResizable(True)
-        self.scroll_area.setFrameShape(QFrame.Shape.NoFrame)
-        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.scroll_area.setStyleSheet("QScrollArea { background: transparent; } QScrollBar:vertical { width: 8px; background: transparent; } QScrollBar::handle:vertical { background: #cac4d0; border-radius: 4px; } QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }")
-
-        # Content container with margins for shadows
-        self.content_widget = QWidget()
-        self.content_widget.setStyleSheet("background: transparent;")
-        self.content_layout = QVBoxLayout(self.content_widget)
-        self.content_layout.setContentsMargins(8, 8, 8, 8)
+        # Content layout with margins for shadows
+        self.content_layout = QVBoxLayout()
+        self.content_layout.setContentsMargins(8, 0, 8, 8)
         self.content_layout.setSpacing(0)
-
-        self.scroll_area.setWidget(self.content_widget)
-        self.main_layout.addWidget(self.scroll_area)
+        self.main_layout.addLayout(self.content_layout)
 
         self.setLayout(self.main_layout)
 
@@ -647,6 +639,16 @@ class WeatherApp(QWidget):
                 )
         super().changeEvent(event)
 
+    def resizeEvent(self, event):
+        """Lock aspect ratio during resize."""
+        new_size = event.size()
+        new_width = new_size.width()
+        new_height = int(new_width / self.ASPECT_RATIO)
+
+        if new_height != new_size.height():
+            self.resize(new_width, new_height)
+        super().resizeEvent(event)
+
     def update_weather(self):
         """Fetch and display weather data."""
         # Clear existing content
@@ -668,7 +670,7 @@ class WeatherApp(QWidget):
         location_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.content_layout.addWidget(location_label)
 
-        self.content_layout.addSpacing(8)
+        self.content_layout.addSpacing(4)
 
         # Condition
         condition = QLabel(get_weather_description(weather['weathercode']))
@@ -676,16 +678,16 @@ class WeatherApp(QWidget):
         condition.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.content_layout.addWidget(condition)
 
-        self.content_layout.addSpacing(16)
+        self.content_layout.addSpacing(8)
 
         # Weather icon
         is_day = weather.get("is_day", 1) == 1
         icon_path = get_weather_icon(weather['weathercode'], is_day)
         svg_widget = QSvgWidget(icon_path)
-        svg_widget.setFixedSize(140, 140)
+        svg_widget.setFixedSize(100, 100)
         self.content_layout.addWidget(svg_widget, alignment=Qt.AlignmentFlag.AlignCenter)
 
-        self.content_layout.addSpacing(8)
+        self.content_layout.addSpacing(4)
 
         # Temperature
         temp = QLabel(f"{int(weather['temperature'])}°")
@@ -699,23 +701,26 @@ class WeatherApp(QWidget):
         minmax.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.content_layout.addWidget(minmax)
 
-        self.content_layout.addSpacing(24)
+        self.content_layout.addSpacing(12)
 
         # Details card
         card = create_details_card(weather_data)
         self.content_layout.addWidget(card)
 
-        self.content_layout.addSpacing(16)
+        self.content_layout.addSpacing(10)
 
         # Clothing suggestions card
         clothing_card = create_clothing_card(weather_data)
         self.content_layout.addWidget(clothing_card)
 
-        self.content_layout.addSpacing(16)
+        self.content_layout.addSpacing(10)
 
         # 7-day forecast card
         forecast_card = create_forecast_card(weather_data)
         self.content_layout.addWidget(forecast_card)
+
+        # Add stretch to push content up
+        self.content_layout.addStretch()
 
     def clear_layout(self, layout):
         """Recursively clear a layout."""
