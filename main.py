@@ -2,14 +2,18 @@ import sys
 import os
 import requests
 import geocoder
+import winreg
 from geopy.geocoders import Nominatim
 from PyQt6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QLabel,
                               QHBoxLayout, QFrame, QGraphicsDropShadowEffect,
                               QLineEdit, QCompleter, QListView, QScrollArea,
                               QSystemTrayIcon, QMenu)
 from PyQt6.QtCore import Qt, QSize, QTimer, QStringListModel, QThread, pyqtSignal
-from PyQt6.QtGui import QColor, QIcon, QAction
+from PyQt6.QtGui import QColor, QIcon, QAction, QPixmap, QPainter, QFont
 from PyQt6.QtSvgWidgets import QSvgWidget
+
+# App info for startup registry
+APP_NAME = "WeatherApp"
 
 """
 Weather App - Main Entry Point
@@ -603,6 +607,17 @@ class WeatherApp(QWidget):
         show_action.triggered.connect(self.show_window)
         tray_menu.addAction(show_action)
 
+        tray_menu.addSeparator()
+
+        # Run on startup toggle
+        self.startup_action = QAction("Run on startup", self)
+        self.startup_action.setCheckable(True)
+        self.startup_action.setChecked(self.is_startup_enabled())
+        self.startup_action.triggered.connect(self.toggle_startup)
+        tray_menu.addAction(self.startup_action)
+
+        tray_menu.addSeparator()
+
         quit_action = QAction("Quit", self)
         quit_action.triggered.connect(QApplication.instance().quit)
         tray_menu.addAction(quit_action)
@@ -610,10 +625,70 @@ class WeatherApp(QWidget):
         self.tray_icon.setContextMenu(tray_menu)
         self.tray_icon.activated.connect(self.tray_activated)
 
-        # Use a default icon (or you could use one of your weather icons)
-        icon_path = os.path.join(ICON_DIR, "weather.svg")
-        if os.path.exists(icon_path):
-            self.tray_icon.setIcon(QIcon(icon_path))
+        # Set initial icon (will be updated with temperature)
+        self.update_tray_icon(None)
+
+    def get_exe_path(self):
+        """Get the path to the executable."""
+        if getattr(sys, 'frozen', False):
+            return sys.executable
+        return os.path.abspath(sys.argv[0])
+
+    def is_startup_enabled(self):
+        """Check if app is set to run on startup."""
+        try:
+            key = winreg.OpenKey(
+                winreg.HKEY_CURRENT_USER,
+                r"Software\Microsoft\Windows\CurrentVersion\Run",
+                0, winreg.KEY_READ
+            )
+            winreg.QueryValueEx(key, APP_NAME)
+            winreg.CloseKey(key)
+            return True
+        except WindowsError:
+            return False
+
+    def toggle_startup(self, checked):
+        """Enable or disable run on startup."""
+        key = winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            r"Software\Microsoft\Windows\CurrentVersion\Run",
+            0, winreg.KEY_SET_VALUE
+        )
+        if checked:
+            winreg.SetValueEx(key, APP_NAME, 0, winreg.REG_SZ, self.get_exe_path())
+        else:
+            try:
+                winreg.DeleteValue(key, APP_NAME)
+            except WindowsError:
+                pass
+        winreg.CloseKey(key)
+
+    def update_tray_icon(self, temperature):
+        """Update tray icon to show current temperature."""
+        size = 64
+        pixmap = QPixmap(size, size)
+        pixmap.fill(Qt.GlobalColor.transparent)
+
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        if temperature is not None:
+            # Draw temperature text
+            temp_text = f"{int(temperature)}°"
+            font = QFont("Segoe UI", 28, QFont.Weight.Bold)
+            painter.setFont(font)
+            painter.setPen(QColor("#1d1b20"))
+            painter.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, temp_text)
+        else:
+            # Draw placeholder
+            font = QFont("Segoe UI", 24, QFont.Weight.Bold)
+            painter.setFont(font)
+            painter.setPen(QColor("#1d1b20"))
+            painter.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, "--")
+
+        painter.end()
+        self.tray_icon.setIcon(QIcon(pixmap))
 
     def show_window(self):
         """Show and activate the window."""
@@ -663,6 +738,10 @@ class WeatherApp(QWidget):
         weather_data = fetch_weather_data(self.lat, self.lon)
         weather = weather_data["current_weather"]
         daily = weather_data["daily"]
+
+        # Update tray icon with current temperature
+        self.update_tray_icon(weather["temperature"])
+        self.tray_icon.setToolTip(f"{self.location_name}: {int(weather['temperature'])}°")
 
         # Location label
         location_label = QLabel(self.location_name)
