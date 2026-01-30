@@ -252,113 +252,222 @@ def fetch_weather_data(lat, lon):
     return response.json()
 
 
-def get_stylesheet():
+def get_stylesheet(dark_mode=False):
     """Return the Material Design 3 stylesheet."""
-    return """
-        QWidget#main {
-            background-color: #f6f6f6;
-        }
-        QLabel {
-            font-family: 'Roboto', 'Segoe UI', sans-serif;
-            color: #1d1b20;
-        }
-        QLabel#location {
-            font-size: 18px;
-            font-weight: 400;
-            color: #1d1b20;
-        }
-        QLabel#condition {
-            font-size: 14px;
-            font-weight: 400;
-            color: #49454f;
-        }
-        QLabel#temperature {
-            font-size: 48px;
-            font-weight: 300;
-            color: #1d1b20;
-        }
-        QLabel#minmax {
-            font-size: 14px;
-            font-weight: 500;
-            color: #49454f;
-        }
-        QFrame#card {
-            background-color: #ffffff;
-            border-radius: 20px;
-        }
-        QLabel#cardTitle {
-            font-size: 12px;
-            font-weight: 500;
-            color: #49454f;
-            padding-bottom: 4px;
-        }
-        QLabel#detailLabel {
-            font-size: 12px;
-            font-weight: 400;
-            color: #49454f;
-        }
-        QLabel#detailValue {
-            font-size: 12px;
-            font-weight: 500;
-            color: #1d1b20;
-        }
-        QFrame#searchBar {
-            background-color: #e6e0e9;
-            border-radius: 22px;
-        }
-        QLineEdit#searchInput {
-            font-family: 'Roboto', 'Segoe UI', sans-serif;
-            font-size: 14px;
-            padding: 0px;
-            border: none;
-            background-color: transparent;
-            color: #1d1b20;
-        }
-        QLineEdit#searchInput:focus {
-            outline: none;
-        }
-        QLabel#searchIcon {
-            color: #49454f;
-            font-size: 18px;
-        }
-        QListView {
-            font-family: 'Roboto', 'Segoe UI', sans-serif;
-            font-size: 14px;
-            background-color: #f3edf7;
-            border: 1px solid #cac4d0;
-            border-radius: 4px;
-            padding: 4px 0;
-            outline: none;
-            margin-top: 4px;
-        }
-        QListView::item {
-            padding: 14px 16px;
-            color: #1d1b20;
-            border: none;
-            min-height: 24px;
-        }
-        QListView::item:hover {
-            background-color: #e7e0ec;
-        }
-        QListView::item:selected {
-            background-color: #d0bcff;
-            color: #21005d;
-        }
-        QFrame#forecastCard {
-            background-color: #ffffff;
-            border-radius: 20px;
-        }
-        QLabel#forecastDay {
-            font-size: 10px;
-            font-weight: 500;
-            color: #49454f;
-        }
-        QLabel#forecastTemp {
-            font-size: 12px;
-            font-weight: 500;
-            color: #1d1b20;
-        }
-    """
+    if dark_mode:
+        # Dark mode colors
+        return """
+            QWidget#main {
+                background-color: #1a1a2e;
+            }
+            QLabel {
+                font-family: 'Roboto', 'Segoe UI', sans-serif;
+                color: #e6e1e5;
+            }
+            QLabel#location {
+                font-size: 18px;
+                font-weight: 400;
+                color: #e6e1e5;
+            }
+            QLabel#condition {
+                font-size: 14px;
+                font-weight: 400;
+                color: #cac4d0;
+            }
+            QLabel#temperature {
+                font-size: 48px;
+                font-weight: 300;
+                color: #e6e1e5;
+            }
+            QLabel#minmax {
+                font-size: 14px;
+                font-weight: 500;
+                color: #cac4d0;
+            }
+            QFrame#card {
+                background-color: #2d2d44;
+                border-radius: 20px;
+            }
+            QLabel#cardTitle {
+                font-size: 12px;
+                font-weight: 500;
+                color: #cac4d0;
+                padding-bottom: 4px;
+            }
+            QLabel#detailLabel {
+                font-size: 12px;
+                font-weight: 400;
+                color: #cac4d0;
+            }
+            QLabel#detailValue {
+                font-size: 12px;
+                font-weight: 500;
+                color: #e6e1e5;
+            }
+            QFrame#searchBar {
+                background-color: #2d2d44;
+                border-radius: 22px;
+            }
+            QLineEdit#searchInput {
+                font-family: 'Roboto', 'Segoe UI', sans-serif;
+                font-size: 14px;
+                padding: 0px;
+                border: none;
+                background-color: transparent;
+                color: #e6e1e5;
+            }
+            QLineEdit#searchInput:focus {
+                outline: none;
+            }
+            QLabel#searchIcon {
+                color: #cac4d0;
+                font-size: 18px;
+            }
+            QListView {
+                font-family: 'Roboto', 'Segoe UI', sans-serif;
+                font-size: 14px;
+                background-color: #2d2d44;
+                border: 1px solid #49454f;
+                border-radius: 4px;
+                padding: 4px 0;
+                outline: none;
+                margin-top: 4px;
+            }
+            QListView::item {
+                padding: 14px 16px;
+                color: #e6e1e5;
+                border: none;
+                min-height: 24px;
+            }
+            QListView::item:hover {
+                background-color: #3d3d5c;
+            }
+            QListView::item:selected {
+                background-color: #4a4458;
+                color: #e6e1e5;
+            }
+            QFrame#forecastCard {
+                background-color: #2d2d44;
+                border-radius: 20px;
+            }
+            QLabel#forecastDay {
+                font-size: 10px;
+                font-weight: 500;
+                color: #cac4d0;
+            }
+            QLabel#forecastTemp {
+                font-size: 12px;
+                font-weight: 500;
+                color: #e6e1e5;
+            }
+        """
+    else:
+        # Light mode colors
+        return """
+            QWidget#main {
+                background-color: #f6f6f6;
+            }
+            QLabel {
+                font-family: 'Roboto', 'Segoe UI', sans-serif;
+                color: #1d1b20;
+            }
+            QLabel#location {
+                font-size: 18px;
+                font-weight: 400;
+                color: #1d1b20;
+            }
+            QLabel#condition {
+                font-size: 14px;
+                font-weight: 400;
+                color: #49454f;
+            }
+            QLabel#temperature {
+                font-size: 48px;
+                font-weight: 300;
+                color: #1d1b20;
+            }
+            QLabel#minmax {
+                font-size: 14px;
+                font-weight: 500;
+                color: #49454f;
+            }
+            QFrame#card {
+                background-color: #ffffff;
+                border-radius: 20px;
+            }
+            QLabel#cardTitle {
+                font-size: 12px;
+                font-weight: 500;
+                color: #49454f;
+                padding-bottom: 4px;
+            }
+            QLabel#detailLabel {
+                font-size: 12px;
+                font-weight: 400;
+                color: #49454f;
+            }
+            QLabel#detailValue {
+                font-size: 12px;
+                font-weight: 500;
+                color: #1d1b20;
+            }
+            QFrame#searchBar {
+                background-color: #e6e0e9;
+                border-radius: 22px;
+            }
+            QLineEdit#searchInput {
+                font-family: 'Roboto', 'Segoe UI', sans-serif;
+                font-size: 14px;
+                padding: 0px;
+                border: none;
+                background-color: transparent;
+                color: #1d1b20;
+            }
+            QLineEdit#searchInput:focus {
+                outline: none;
+            }
+            QLabel#searchIcon {
+                color: #49454f;
+                font-size: 18px;
+            }
+            QListView {
+                font-family: 'Roboto', 'Segoe UI', sans-serif;
+                font-size: 14px;
+                background-color: #f3edf7;
+                border: 1px solid #cac4d0;
+                border-radius: 4px;
+                padding: 4px 0;
+                outline: none;
+                margin-top: 4px;
+            }
+            QListView::item {
+                padding: 14px 16px;
+                color: #1d1b20;
+                border: none;
+                min-height: 24px;
+            }
+            QListView::item:hover {
+                background-color: #e7e0ec;
+            }
+            QListView::item:selected {
+                background-color: #d0bcff;
+                color: #21005d;
+            }
+            QFrame#forecastCard {
+                background-color: #ffffff;
+                border-radius: 20px;
+            }
+            QLabel#forecastDay {
+                font-size: 10px;
+                font-weight: 500;
+                color: #49454f;
+            }
+            QLabel#forecastTemp {
+                font-size: 12px;
+                font-weight: 500;
+                color: #1d1b20;
+            }
+        """
 
 
 def create_details_card(weather_data):
@@ -625,7 +734,12 @@ class WeatherApp(QWidget):
         self.setWindowTitle("Weather")
         self.resize(390, 844)
         self.setMinimumSize(292, 633)  # Minimum size maintaining ratio
-        self.setStyleSheet(get_stylesheet())
+
+        # Dark mode tracking
+        self.is_dark_mode = False
+        self.sunrise = None
+        self.sunset = None
+        self.setStyleSheet(get_stylesheet(self.is_dark_mode))
 
         # Get current location
         self.lat, self.lon, self.location_name = get_current_location()
@@ -701,6 +815,11 @@ class WeatherApp(QWidget):
 
         # Load weather data
         self.update_weather()
+
+        # Timer to check for day/night theme changes every minute
+        self.theme_timer = QTimer()
+        self.theme_timer.timeout.connect(self.check_theme)
+        self.theme_timer.start(60000)  # Check every minute
 
     def setup_tray(self):
         """Setup system tray icon and menu."""
@@ -789,21 +908,45 @@ class WeatherApp(QWidget):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
         if temperature is not None:
-            # Draw temperature text
+            # Draw temperature text in white
             temp_text = f"{int(temperature)}°"
             font = QFont("Segoe UI", 28, QFont.Weight.Bold)
             painter.setFont(font)
-            painter.setPen(QColor("#1d1b20"))
+            painter.setPen(QColor("#ffffff"))
             painter.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, temp_text)
         else:
-            # Draw placeholder
+            # Draw placeholder in white
             font = QFont("Segoe UI", 24, QFont.Weight.Bold)
             painter.setFont(font)
-            painter.setPen(QColor("#1d1b20"))
+            painter.setPen(QColor("#ffffff"))
             painter.drawText(pixmap.rect(), Qt.AlignmentFlag.AlignCenter, "--")
 
         painter.end()
         self.tray_icon.setIcon(QIcon(pixmap))
+
+    def check_theme(self):
+        """Check if theme should change based on sunrise/sunset."""
+        if not self.sunrise or not self.sunset:
+            return
+
+        from datetime import datetime
+
+        try:
+            # Get current time in same format as API (ISO format)
+            now = datetime.now()
+            current_time = now.strftime("%Y-%m-%dT%H:%M")
+
+            # Compare with sunrise/sunset
+            should_be_dark = current_time < self.sunrise or current_time >= self.sunset
+
+            if should_be_dark != self.is_dark_mode:
+                self.is_dark_mode = should_be_dark
+                self.setStyleSheet(get_stylesheet(self.is_dark_mode))
+                # Update completer popup style too
+                if hasattr(self, 'completer'):
+                    self.completer.popup().setStyleSheet(get_stylesheet(self.is_dark_mode))
+        except Exception:
+            pass
 
     def silent_update_check(self):
         """Check for updates silently on startup."""
@@ -952,6 +1095,13 @@ class WeatherApp(QWidget):
         weather_data = fetch_weather_data(self.lat, self.lon)
         weather = weather_data["current_weather"]
         daily = weather_data["daily"]
+
+        # Store sunrise/sunset for theme switching
+        self.sunrise = daily.get("sunrise", [None])[0]
+        self.sunset = daily.get("sunset", [None])[0]
+
+        # Check and apply theme based on time
+        self.check_theme()
 
         # Update tray icon with current temperature
         self.update_tray_icon(weather["temperature"])
