@@ -20,7 +20,7 @@ from PyQt6.QtSvgWidgets import QSvgWidget
 
 # App info
 APP_NAME = "WeatherApp"
-APP_VERSION = "1.1.1"
+APP_VERSION = "1.1.2"
 GITHUB_REPO = "ShayneDMuir/weather-app-python"
 
 """
@@ -830,6 +830,11 @@ class WeatherApp(QWidget):
         self.theme_timer = QTimer()
         self.theme_timer.timeout.connect(self.check_theme)
         self.theme_timer.start(60000)  # Check every minute
+
+        # Timer to refresh weather data every 30 minutes
+        self.weather_timer = QTimer()
+        self.weather_timer.timeout.connect(self.update_weather)
+        self.weather_timer.start(1800000)  # 30 minutes
 
     def setup_tray(self):
         """Setup system tray icon and menu."""
