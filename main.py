@@ -1,5 +1,9 @@
 import sys
 import os
+
+# Suppress Qt SVG warnings about unsupported filter elements
+os.environ["QT_LOGGING_RULES"] = "qt.svg.warning=false"
+
 import requests
 import geocoder
 import winreg
