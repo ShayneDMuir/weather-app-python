@@ -20,7 +20,7 @@ from PyQt6.QtSvgWidgets import QSvgWidget
 
 # App info
 APP_NAME = "WeatherApp"
-APP_VERSION = "1.1.0"
+APP_VERSION = "1.1.1"
 GITHUB_REPO = "ShayneDMuir/weather-app-python"
 
 """
@@ -185,9 +185,12 @@ def get_weather_description(code):
 
 def get_current_location():
     """Get current location from IP address."""
-    g = geocoder.ip('me')
-    if g.ok:
-        return g.latlng[0], g.latlng[1], g.city or "Unknown Location"
+    try:
+        g = geocoder.ip('me')
+        if g.ok:
+            return g.latlng[0], g.latlng[1], g.city or "Unknown Location"
+    except Exception:
+        pass
     return -36.8485, 174.7633, "Auckland, New Zealand"
 
 
@@ -252,8 +255,11 @@ def fetch_weather_data(lat, lon):
         "hourly": "relative_humidity_2m,wind_speed_10m",
         "timezone": "auto"
     }
-    response = requests.get(url, params=params)
-    return response.json()
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        return response.json()
+    except Exception:
+        return None
 
 
 def get_stylesheet(dark_mode=False):
@@ -1097,6 +1103,22 @@ class WeatherApp(QWidget):
 
         # Fetch data
         weather_data = fetch_weather_data(self.lat, self.lon)
+
+        # Handle connection error
+        if weather_data is None:
+            error_label = QLabel("Unable to connect")
+            error_label.setObjectName("location")
+            error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.content_layout.addWidget(error_label)
+
+            error_msg = QLabel("Check your internet connection\nand try again")
+            error_msg.setObjectName("condition")
+            error_msg.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            self.content_layout.addWidget(error_msg)
+
+            self.content_layout.addStretch()
+            return
+
         weather = weather_data["current_weather"]
         daily = weather_data["daily"]
 
