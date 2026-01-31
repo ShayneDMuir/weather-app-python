@@ -20,7 +20,7 @@ from PyQt6.QtSvgWidgets import QSvgWidget
 
 # App info
 APP_NAME = "WeatherApp"
-APP_VERSION = "1.1.2"
+APP_VERSION = "1.1.3"
 GITHUB_REPO = "ShayneDMuir/weather-app-python"
 
 """
@@ -689,20 +689,23 @@ class UpdateWorker(QThread):
         self.download_url = download_url
 
     def run(self):
-        if self.download_url:
-            # Download mode
-            temp_path = download_update(self.download_url, self.download_progress.emit)
-            if temp_path:
-                self.download_complete.emit(temp_path)
+        try:
+            if self.download_url:
+                # Download mode
+                temp_path = download_update(self.download_url, self.download_progress.emit)
+                if temp_path:
+                    self.download_complete.emit(temp_path)
+                else:
+                    self.error.emit("Download failed")
             else:
-                self.error.emit("Download failed")
-        else:
-            # Check mode
-            latest_version, download_url = check_for_updates()
-            if latest_version and compare_versions(APP_VERSION, latest_version):
-                self.update_available.emit(latest_version, download_url)
-            else:
-                self.no_update.emit()
+                # Check mode
+                latest_version, download_url = check_for_updates()
+                if latest_version and compare_versions(APP_VERSION, latest_version):
+                    self.update_available.emit(latest_version, download_url)
+                else:
+                    self.no_update.emit()
+        except Exception as e:
+            self.error.emit(str(e))
 
 
 def create_clothing_card(weather_data):
@@ -976,7 +979,19 @@ class WeatherApp(QWidget):
         self.update_worker = UpdateWorker()
         self.update_worker.update_available.connect(self.on_update_available)
         self.update_worker.no_update.connect(self.on_no_update)
+        self.update_worker.error.connect(self.on_update_error)
         self.update_worker.start()
+
+    def on_update_error(self, error_msg):
+        """Handle update check error."""
+        self.update_action.setEnabled(True)
+        self.update_action.setText("Check for updates")
+        self.tray_icon.showMessage(
+            "Update Check Failed",
+            f"Could not check for updates: {error_msg}",
+            QSystemTrayIcon.MessageIcon.Warning,
+            3000
+        )
 
     def on_update_available_silent(self, version, download_url):
         """Handle update available (silent check)."""
@@ -1010,11 +1025,10 @@ class WeatherApp(QWidget):
         """Handle no update available."""
         self.update_action.setEnabled(True)
         self.update_action.setText("Check for updates")
-        self.tray_icon.showMessage(
-            "No Updates",
-            f"You're running the latest version ({APP_VERSION}).",
-            QSystemTrayIcon.MessageIcon.Information,
-            3000
+        QMessageBox.information(
+            self,
+            "Up to Date",
+            f"You're running the latest version (v{APP_VERSION})."
         )
 
     def download_update(self, download_url):
