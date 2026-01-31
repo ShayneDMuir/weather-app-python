@@ -20,7 +20,7 @@ from PyQt6.QtSvgWidgets import QSvgWidget
 
 # App info
 APP_NAME = "WeatherApp"
-APP_VERSION = "1.1.4"
+APP_VERSION = "1.1.5"
 GITHUB_REPO = "ShayneDMuir/weather-app-python"
 
 """
@@ -745,6 +745,7 @@ class WeatherApp(QWidget):
         super().__init__()
         self.setObjectName("main")
         self.setWindowTitle("Weather")
+        self.setWindowIcon(QIcon(os.path.join(ICON_DIR, "sunny-day.svg")))
         self.resize(390, 844)
         self.setMinimumSize(292, 633)  # Minimum size maintaining ratio
 
