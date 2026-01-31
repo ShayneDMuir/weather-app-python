@@ -14,13 +14,13 @@ from PyQt6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QLabel,
                               QHBoxLayout, QFrame, QGraphicsDropShadowEffect,
                               QLineEdit, QCompleter, QListView, QScrollArea,
                               QSystemTrayIcon, QMenu, QMessageBox)
-from PyQt6.QtCore import Qt, QSize, QTimer, QStringListModel, QThread, pyqtSignal
+from PyQt6.QtCore import Qt, QSize, QTimer, QStringListModel, QThread, pyqtSignal, QPropertyAnimation, QEasingCurve
 from PyQt6.QtGui import QColor, QIcon, QAction, QPixmap, QPainter, QFont
 from PyQt6.QtSvgWidgets import QSvgWidget
 
 # App info
 APP_NAME = "WeatherApp"
-APP_VERSION = "1.1.3"
+APP_VERSION = "1.1.4"
 GITHUB_REPO = "ShayneDMuir/weather-app-python"
 
 """
@@ -1090,15 +1090,36 @@ class WeatherApp(QWidget):
         """Handle window state changes."""
         if event.type() == event.Type.WindowStateChange:
             if self.isMinimized():
-                self.hide()
-                self.tray_icon.show()
-                self.tray_icon.showMessage(
-                    "Weather App",
-                    "Running in background. Double-click to restore.",
-                    QSystemTrayIcon.MessageIcon.Information,
-                    2000
-                )
+                self.showNormal()  # Restore first to animate
+                self.animate_to_tray()
         super().changeEvent(event)
+
+    def closeEvent(self, event):
+        """Minimize to tray with fade animation instead of closing."""
+        event.ignore()
+        self.animate_to_tray()
+
+    def animate_to_tray(self):
+        """Fade out and minimize to tray."""
+        self.fade_animation = QPropertyAnimation(self, b"windowOpacity")
+        self.fade_animation.setDuration(200)
+        self.fade_animation.setStartValue(1.0)
+        self.fade_animation.setEndValue(0.0)
+        self.fade_animation.setEasingCurve(QEasingCurve.Type.OutQuad)
+        self.fade_animation.finished.connect(self.on_fade_complete)
+        self.fade_animation.start()
+
+    def on_fade_complete(self):
+        """Hide window after fade animation."""
+        self.hide()
+        self.setWindowOpacity(1.0)  # Reset for when shown again
+        self.tray_icon.show()
+        self.tray_icon.showMessage(
+            "Weather App",
+            "Running in background. Double-click to restore.",
+            QSystemTrayIcon.MessageIcon.Information,
+            2000
+        )
 
     def resizeEvent(self, event):
         """Lock aspect ratio during resize."""
