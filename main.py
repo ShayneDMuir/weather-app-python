@@ -20,7 +20,7 @@ from PyQt6.QtSvgWidgets import QSvgWidget
 
 # App info
 APP_NAME = "WeatherApp"
-APP_VERSION = "1.1.5"
+APP_VERSION = "1.1.6"
 GITHUB_REPO = "ShayneDMuir/weather-app-python"
 
 """
@@ -88,11 +88,36 @@ def apply_update(new_exe_path):
     current_exe = sys.executable
     batch_path = os.path.join(tempfile.gettempdir(), "weather_update.bat")
 
+    # Batch script with retry logic and longer wait
     batch_content = f'''@echo off
-timeout /t 2 /nobreak >nul
-del "{current_exe}"
-move "{new_exe_path}" "{current_exe}"
-start "" "{current_exe}"
+setlocal
+
+set "OLD_EXE={current_exe}"
+set "NEW_EXE={new_exe_path}"
+
+:: Wait for app to fully close
+timeout /t 3 /nobreak >nul
+
+:: Try to delete old exe with retries
+set RETRIES=5
+:retry_delete
+del "%OLD_EXE%" 2>nul
+if exist "%OLD_EXE%" (
+    set /a RETRIES-=1
+    if %RETRIES% gtr 0 (
+        timeout /t 2 /nobreak >nul
+        goto retry_delete
+    )
+)
+
+:: Move new exe
+move /y "%NEW_EXE%" "%OLD_EXE%" >nul 2>&1
+
+:: Start updated app
+timeout /t 1 /nobreak >nul
+start "" "%OLD_EXE%"
+
+:: Clean up this script
 del "%~f0"
 '''
 
