@@ -23,7 +23,7 @@ from PyQt6.QtSvgWidgets import QSvgWidget
 
 # App info
 APP_NAME = "WeatherApp"
-APP_VERSION = "1.1.9"
+APP_VERSION = "1.2.0"
 GITHUB_REPO = "ShayneDMuir/weather-app-python"
 
 """
@@ -91,30 +91,40 @@ def apply_update(new_exe_path):
     current_exe = sys.executable
     batch_path = os.path.join(tempfile.gettempdir(), "weather_update.bat")
 
-    # Batch script with retry logic and longer wait
+    # Batch script with taskkill and retry logic
     batch_content = f'''@echo off
 setlocal
 
 set "OLD_EXE={current_exe}"
 set "NEW_EXE={new_exe_path}"
 
-:: Wait for app to fully close
-timeout /t 3 /nobreak >nul
+:: Wait for app to close
+timeout /t 2 /nobreak >nul
 
-:: Try to delete old exe with retries
-set RETRIES=5
-:retry_delete
-del "%OLD_EXE%" 2>nul
+:: Force kill any remaining instances
+taskkill /f /im WeatherApp.exe >nul 2>&1
+timeout /t 2 /nobreak >nul
+
+:: Try to replace with retries
+set RETRIES=10
+:retry
+del "%OLD_EXE%" >nul 2>&1
 if exist "%OLD_EXE%" (
     set /a RETRIES-=1
     if %RETRIES% gtr 0 (
-        timeout /t 2 /nobreak >nul
-        goto retry_delete
+        timeout /t 1 /nobreak >nul
+        goto retry
     )
+    :: If delete still fails, try to rename old exe first
+    move "%OLD_EXE%" "%OLD_EXE%.old" >nul 2>&1
 )
 
-:: Move new exe
-move /y "%NEW_EXE%" "%OLD_EXE%" >nul 2>&1
+:: Copy new exe to location
+copy /y "%NEW_EXE%" "%OLD_EXE%" >nul 2>&1
+
+:: Clean up temp and old files
+del "%NEW_EXE%" >nul 2>&1
+del "%OLD_EXE%.old" >nul 2>&1
 
 :: Start updated app
 timeout /t 1 /nobreak >nul
