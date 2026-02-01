@@ -23,7 +23,7 @@ from PyQt6.QtSvgWidgets import QSvgWidget
 
 # App info
 APP_NAME = "WeatherApp"
-APP_VERSION = "1.2.1"
+APP_VERSION = "1.2.2"
 GITHUB_REPO = "ShayneDMuir/weather-app-python"
 
 """
@@ -103,7 +103,7 @@ timeout /t 2 /nobreak >nul
 
 :: Force kill any remaining instances
 taskkill /f /im WeatherApp.exe >nul 2>&1
-timeout /t 2 /nobreak >nul
+timeout /t 3 /nobreak >nul
 
 :: Try to replace with retries
 set RETRIES=10
@@ -125,10 +125,6 @@ copy /y "%NEW_EXE%" "%OLD_EXE%" >nul 2>&1
 :: Clean up temp and old files
 del "%NEW_EXE%" >nul 2>&1
 del "%OLD_EXE%.old" >nul 2>&1
-
-:: Start updated app
-timeout /t 1 /nobreak >nul
-start "" "%OLD_EXE%"
 
 :: Clean up this script
 del "%~f0"
@@ -1115,12 +1111,12 @@ class WeatherApp(QWidget):
         self.update_action.setText("Installing...")
         if apply_update(temp_path):
             self.tray_icon.showMessage(
-                "Update Installing",
-                "The app will restart shortly.",
+                "Update Complete",
+                "Please restart the app to use the new version.",
                 QSystemTrayIcon.MessageIcon.Information,
-                2000
+                3000
             )
-            QTimer.singleShot(1000, QApplication.instance().quit)
+            QTimer.singleShot(2000, QApplication.instance().quit)
         else:
             self.update_action.setEnabled(True)
             self.update_action.setText("Check for updates")
