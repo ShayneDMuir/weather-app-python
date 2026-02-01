@@ -23,7 +23,7 @@ from PyQt6.QtSvgWidgets import QSvgWidget
 
 # App info
 APP_NAME = "WeatherApp"
-APP_VERSION = "1.1.7"
+APP_VERSION = "1.1.8"
 GITHUB_REPO = "ShayneDMuir/weather-app-python"
 
 """
@@ -624,9 +624,15 @@ def get_clothing_suggestions(weather_data):
     return suggestions
 
 
-def create_forecast_card(weather_data):
+def create_forecast_card(weather_data, use_fahrenheit=False):
     """Create the 7-day forecast card widget."""
     daily = weather_data["daily"]
+
+    def to_display_temp(celsius):
+        """Convert Celsius to display temperature."""
+        if use_fahrenheit:
+            return int(celsius * 9 / 5 + 32)
+        return int(celsius)
 
     card = QFrame()
     card.setObjectName("forecastCard")
@@ -679,7 +685,7 @@ def create_forecast_card(weather_data):
         day_layout.addWidget(icon, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # High temp
-        high_temp = int(daily["temperature_2m_max"][i])
+        high_temp = to_display_temp(daily["temperature_2m_max"][i])
         temp_label = QLabel(f"{high_temp}°")
         temp_label.setObjectName("forecastTemp")
         temp_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -781,6 +787,7 @@ class WeatherApp(QWidget):
         self.is_dark_mode = False
         self.sunrise = None
         self.sunset = None
+        self.use_fahrenheit = False  # Temperature unit preference
         self.setStyleSheet(get_stylesheet(self.is_dark_mode))
 
         # Get current location
@@ -882,6 +889,13 @@ class WeatherApp(QWidget):
 
         tray_menu.addSeparator()
 
+        # Temperature unit toggle
+        self.fahrenheit_action = QAction("Use Fahrenheit", self)
+        self.fahrenheit_action.setCheckable(True)
+        self.fahrenheit_action.setChecked(self.use_fahrenheit)
+        self.fahrenheit_action.triggered.connect(self.toggle_fahrenheit)
+        tray_menu.addAction(self.fahrenheit_action)
+
         # Run on startup toggle
         self.startup_action = QAction("Run on startup", self)
         self.startup_action.setCheckable(True)
@@ -945,6 +959,17 @@ class WeatherApp(QWidget):
                 pass
         winreg.CloseKey(key)
 
+    def toggle_fahrenheit(self, checked):
+        """Toggle between Celsius and Fahrenheit."""
+        self.use_fahrenheit = checked
+        self.update_weather()  # Refresh display with new unit
+
+    def to_display_temp(self, celsius):
+        """Convert Celsius to display temperature based on preference."""
+        if self.use_fahrenheit:
+            return int(celsius * 9 / 5 + 32)
+        return int(celsius)
+
     def update_tray_icon(self, temperature):
         """Update tray icon to show current temperature."""
         size = 64
@@ -955,8 +980,9 @@ class WeatherApp(QWidget):
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
         if temperature is not None:
-            # Draw temperature text in white
-            temp_text = f"{int(temperature)}°"
+            # Draw temperature text in white (convert if needed)
+            display_temp = self.to_display_temp(temperature)
+            temp_text = f"{display_temp}°"
             font = QFont("Segoe UI", 28, QFont.Weight.Bold)
             painter.setFont(font)
             painter.setPen(QColor("#ffffff"))
@@ -1200,7 +1226,9 @@ class WeatherApp(QWidget):
 
         # Update tray icon with current temperature
         self.update_tray_icon(weather["temperature"])
-        self.tray_icon.setToolTip(f"{self.location_name}: {int(weather['temperature'])}°")
+        display_temp = self.to_display_temp(weather["temperature"])
+        unit = "°F" if self.use_fahrenheit else "°C"
+        self.tray_icon.setToolTip(f"{self.location_name}: {display_temp}{unit}")
 
         # Location label
         location_label = QLabel(self.location_name)
@@ -1228,13 +1256,15 @@ class WeatherApp(QWidget):
         self.content_layout.addSpacing(4)
 
         # Temperature
-        temp = QLabel(f"{int(weather['temperature'])}°")
+        temp = QLabel(f"{self.to_display_temp(weather['temperature'])}°")
         temp.setObjectName("temperature")
         temp.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.content_layout.addWidget(temp)
 
         # Min/Max
-        minmax = QLabel(f"H:{int(daily['temperature_2m_max'][0])}°  L:{int(daily['temperature_2m_min'][0])}°")
+        high = self.to_display_temp(daily['temperature_2m_max'][0])
+        low = self.to_display_temp(daily['temperature_2m_min'][0])
+        minmax = QLabel(f"H:{high}°  L:{low}°")
         minmax.setObjectName("minmax")
         minmax.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.content_layout.addWidget(minmax)
@@ -1254,7 +1284,7 @@ class WeatherApp(QWidget):
         self.content_layout.addSpacing(10)
 
         # 7-day forecast card
-        forecast_card = create_forecast_card(weather_data)
+        forecast_card = create_forecast_card(weather_data, self.use_fahrenheit)
         self.content_layout.addWidget(forecast_card)
 
         # Add stretch to push content up
