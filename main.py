@@ -4,6 +4,9 @@ import os
 # Suppress Qt SVG warnings about unsupported filter elements
 os.environ["QT_LOGGING_RULES"] = "qt.svg.warning=false"
 
+# Prevent PyInstaller temp directory cleanup errors
+os.environ["PYINSTALLER_CLEANUP_TIMEOUT"] = "0"
+
 import requests
 import geocoder
 import winreg
@@ -20,7 +23,7 @@ from PyQt6.QtSvgWidgets import QSvgWidget
 
 # App info
 APP_NAME = "WeatherApp"
-APP_VERSION = "1.1.6"
+APP_VERSION = "1.1.7"
 GITHUB_REPO = "ShayneDMuir/weather-app-python"
 
 """
