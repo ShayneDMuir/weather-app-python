@@ -1145,29 +1145,16 @@ class WeatherApp(QWidget):
         """Handle window state changes."""
         if event.type() == event.Type.WindowStateChange:
             if self.isMinimized():
-                self.showNormal()  # Restore first to animate
-                self.animate_to_tray()
+                # Just hide to tray without animation
+                self.hide()
+                self.showNormal()  # Reset state for next show
+                self.tray_icon.show()
         super().changeEvent(event)
 
     def closeEvent(self, event):
-        """Minimize to tray with fade animation instead of closing."""
+        """Minimize to tray instead of closing."""
         event.ignore()
-        self.animate_to_tray()
-
-    def animate_to_tray(self):
-        """Fade out and minimize to tray."""
-        self.fade_animation = QPropertyAnimation(self, b"windowOpacity")
-        self.fade_animation.setDuration(200)
-        self.fade_animation.setStartValue(1.0)
-        self.fade_animation.setEndValue(0.0)
-        self.fade_animation.setEasingCurve(QEasingCurve.Type.OutQuad)
-        self.fade_animation.finished.connect(self.on_fade_complete)
-        self.fade_animation.start()
-
-    def on_fade_complete(self):
-        """Hide window after fade animation."""
         self.hide()
-        self.setWindowOpacity(1.0)  # Reset for when shown again
         self.tray_icon.show()
         self.tray_icon.showMessage(
             "Weather App",
