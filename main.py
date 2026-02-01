@@ -893,7 +893,7 @@ class WeatherApp(QWidget):
         self.fahrenheit_action = QAction("Use Fahrenheit", self)
         self.fahrenheit_action.setCheckable(True)
         self.fahrenheit_action.setChecked(self.use_fahrenheit)
-        self.fahrenheit_action.triggered.connect(self.toggle_fahrenheit)
+        self.fahrenheit_action.toggled.connect(self.toggle_fahrenheit)
         tray_menu.addAction(self.fahrenheit_action)
 
         # Run on startup toggle
