@@ -1145,11 +1145,15 @@ class WeatherApp(QWidget):
         """Handle window state changes."""
         if event.type() == event.Type.WindowStateChange:
             if self.isMinimized():
-                # Just hide to tray without animation
-                self.hide()
-                self.showNormal()  # Reset state for next show
-                self.tray_icon.show()
+                # Delay hide to let the event finish processing
+                QTimer.singleShot(0, self.hide_to_tray)
         super().changeEvent(event)
+
+    def hide_to_tray(self):
+        """Hide window to system tray."""
+        self.showNormal()  # Reset state for next show
+        self.hide()
+        self.tray_icon.show()
 
     def closeEvent(self, event):
         """Minimize to tray instead of closing."""
