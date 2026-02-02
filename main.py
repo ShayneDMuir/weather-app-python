@@ -23,7 +23,7 @@ from PyQt6.QtSvgWidgets import QSvgWidget
 
 # App info
 APP_NAME = "WeatherApp"
-APP_VERSION = "1.2.2"
+APP_VERSION = "1.2.3"
 GITHUB_REPO = "ShayneDMuir/weather-app-python"
 
 """
@@ -285,8 +285,8 @@ def fetch_weather_data(lat, lon):
         "latitude": lat,
         "longitude": lon,
         "current_weather": True,
-        "daily": "temperature_2m_max,temperature_2m_min,rain_sum,precipitation_probability_max,sunrise,sunset,weathercode,uv_index_max",
-        "hourly": "relative_humidity_2m,wind_speed_10m",
+        "daily": "temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset,weathercode,uv_index_max",
+        "hourly": "relative_humidity_2m,wind_speed_10m,precipitation",
         "timezone": "auto"
     }
     try:
@@ -540,7 +540,7 @@ def create_details_card(weather_data):
         ("Humidity", f"{hourly['relative_humidity_2m'][0]}%"),
         ("Wind", f"{hourly['wind_speed_10m'][0]} km/h"),
         ("UV Index", f"{daily['uv_index_max'][0]}"),
-        ("Rainfall", f"{daily['rain_sum'][0]} mm"),
+        ("Rainfall", f"{hourly['precipitation'][0]} mm"),
         ("Precipitation", f"{daily['precipitation_probability_max'][0]}%"),
         ("Sunrise", daily['sunrise'][0].split('T')[1]),
         ("Sunset", daily['sunset'][0].split('T')[1])
